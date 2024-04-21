@@ -21,6 +21,7 @@ def unauthorized(error):
     response.status_code = 401
     return response
 
+
 @app.errorhandler(404)
 def not_found(error) -> str:
     """ Not found handler
