@@ -2,6 +2,7 @@
 """
 Authentication for API mdule
 """
+import re
 from typing import List, TypeVar
 from flask import request
 
@@ -14,7 +15,15 @@ class Auth:
         """
         Check if authentication is required for the given path.
         """
-        return False
+        if not path or not excluded_paths:
+            return True
+        if not path.endswith('/'):
+            path += '/'
+        for excluded_path in excluded_paths:
+            if path.startswith(excluded_path):
+                return False
+
+        return True
 
     def authorization_header(self, request=None) -> str:
         """
