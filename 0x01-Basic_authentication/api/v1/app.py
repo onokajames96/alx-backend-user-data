@@ -16,10 +16,18 @@ CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
 
 @app.errorhandler(401)
 def unauthorized(error):
-    """New error Handler"""
+    """Unauthorized error Handler"""
     response = jsonify({'error': 'Unauthorized'})
     response.status_code = 401
     return response
+
+
+@app.errorhandler(403)
+def forbiden(error):
+    """ Forbiden error handler"""
+    res = jsonify({'error': 'Forbidden'})
+    res.status_code = 403
+    return res
 
 
 @app.errorhandler(404)
@@ -27,6 +35,26 @@ def not_found(error) -> str:
     """ Not found handler
     """
     return jsonify({"error": "Not found"}), 404
+
+
+@app.before_request
+def authenticate_user():
+    """
+    user authentication before requets
+    """
+    if auth:
+        excluded_paths = [
+            '/api/v1/status/',
+            '/api/v1/unauthorized/',
+            '/api/v1/forbidden/',
+        ]
+        if auth.require_auth(request.path, excluded_paths):
+            auth_header = auth.authorization_header(request)
+            user = auth.current_user(request)
+            if auth_header is None:
+                abort(401)
+            if user is None:
+                abort(403)
 
 
 if __name__ == "__main__":

@@ -2,8 +2,8 @@
 """
 Base64
 """
-import base64
 import re
+import base64
 import binascii
 from typing import Tuple, TypeVar
 
@@ -12,6 +12,7 @@ from models.user import User
 
 
 class BasicAuth(Auth):
+    """Class BasicAuth module"""
     def extract_base64_authorization_header(
             self,
             authorization_header: str) -> str:
