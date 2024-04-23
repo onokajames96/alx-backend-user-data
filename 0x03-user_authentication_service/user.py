@@ -8,7 +8,6 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 
-
 class User(Base):
     """Clss user"""
     __tablename__ = 'users'
