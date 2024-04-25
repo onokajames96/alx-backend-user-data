@@ -3,6 +3,7 @@
 Database Module
 """
 from sqlalchemy import create_engine
+from sqlalchemy import tuple_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm.exc import NoResultFound
@@ -45,3 +46,13 @@ class DB:
             self._session.rollback()
             new_user = None
         return new_user
+
+    def find_user_by(self, **kwargs) -> User:
+        """Find user"""
+        try:
+            user = self._session.query(User).filter_by(**kwargs).one()
+            return user
+        except NoResultFound:
+            raise NoResultFound()
+        except MultipleResultsFound:
+            raise InvalidRequestError()
