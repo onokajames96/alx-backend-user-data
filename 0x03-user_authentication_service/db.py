@@ -3,12 +3,11 @@
 Database Module
 """
 from sqlalchemy import create_engine
-from sqlalchemy import tuple_
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.exc import InvalidRequestError
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import InvalidRequestError
 
 from user import Base, User
 
@@ -47,23 +46,30 @@ class DB:
 
     def find_user_by(self, **kwargs) -> User:
         """get user by request"""
-        try:
-            fields, values = [], []
-            for key, value in kwargs.items():
-                if hasattr(User, key):
-                    fields.append(getattr(User, key))
-                    values.append(value)
-                else:
-                    raise InvalidRequestError("Invalid query argument: {}".format(key))
-
-            result = self._session.query(User).filter(
-                tuple_(*fields).in_([tuple(values)])
-            ).first()
+        user_fields = [
+                'id', 'email', 'hashed_password',
+                'session_id', 'reset_token'
+                ]
+        for key in kwargs.keys():
+            if key not in user_fields:
+                raise InvalidRequestError
+            result = self._session.query(User).filter_by(**kwargs).first()
 
             if result is None:
-                raise NoResultFound()
-
+                raise NoResultFound
             return result
 
-        except NoResultFound:
-            raise NoResultFound()
+    def update_user(self, user_id: int, **kwargs) -> None:
+        """Updating user"""
+        user_to_update = self.find_user_by(id=user_id)
+        user_fields = [
+                'id', 'email', 'hashed_password',
+                'session_id', 'reset_token'
+                ]
+
+        for key, value in kwargs.items():
+            if keys in user_fields:
+                setattr(user_to_update, key, value)
+            else:
+                raise InvalidRequestError
+        self.session.commit()
