@@ -1,30 +1,105 @@
 #!/usr/bin/env python3
-"""
-Main file
-"""
-from db import DB
-from user import User
 
-from sqlalchemy.exc import InvalidRequestError
-from sqlalchemy.orm.exc import NoResultFound
+import requests
+
+EMAIL = "guillaume@holberton.io"
+PASSWD = "b4l0u"
+NEW_PASSWD = "t4rt1fl3tt3"
+BASE_URL = "http://0.0.0.0:5000"
 
 
-my_db = DB()
+def create_user(email: str, password: str) -> None:
+    url = "{}/users".format(BASE_URL)
+    body = {
+        'email': email,
+        'password': password,
+    }
+    res = requests.post(url, data=body)
+    assert res.status_code == 200
+    assert res.json() == {"email": email, "message": "user created"}
+    res = requests.post(url, data=body)
+    assert res.status_code == 400
+    assert res.json() == {"message": "email already registered"}
 
-user = my_db.add_user("test@test.com", "PwdHashed")
-print(user.id)
 
-find_user = my_db.find_user_by(email="test@test.com")
-print(find_user.id)
+def login_wrong_password(email: str, password: str) -> None:
+    url = "{}/sessions".format(BASE_URL)
+    body = {
+        'email': email,
+        'password': password,
+    }
+    res = requests.post(url, data=body)
+    assert res.status_code == 401
 
-try:
-    find_user = my_db.find_user_by(email="test2@test.com")
-    print(find_user.id)
-except NoResultFound:
-    print("Not found")
 
-try:
-    find_user = my_db.find_user_by(no_email="test@test.com")
-    print(find_user.id)
-except InvalidRequestError:
-    print("Invalid") 
+def login(email: str, password: str) -> str:
+    url = "{}/sessions".format(BASE_URL)
+    body = {
+        'email': email,
+        'password': password,
+    }
+    res = requests.post(url, data=body)
+    assert res.status_code == 200
+    assert res.json() == {"email": email, "message": "logged in"}
+    return res.cookies.get('session_id')
+
+
+def get_profile_unlogged() -> None:
+    url = "{}/profile".format(BASE_URL)
+    res = requests.get(url)
+    assert res.status_code == 403
+
+
+def get_profile_logged(session_id: str) -> None:
+    url = "{}/profile".format(BASE_URL)
+    req_cookies = {
+        'session_id': session_id,
+    }
+    res = requests.get(url, cookies=req_cookies)
+    assert res.status_code == 200
+    assert "email" in res.json()
+
+
+def logout(session_id: str) -> None:
+    url = "{}/sessions".format(BASE_URL)
+    req_cookies = {
+        'session_id': session_id,
+    }
+    res = requests.delete(url, cookies=req_cookies)
+    assert res.status_code == 200
+    assert res.json() == {"message": "Welcome"}
+
+
+def request_password_reset_token(email: str) -> str:
+    url = "{}/reset_password".format(BASE_URL)
+    body = {'email': email}
+    res = requests.post(url, data=body)
+    assert res.status_code == 200
+    assert "email" in res.json()
+    assert res.json()["email"] == email
+    assert "reset_token" in res.json()
+    return res.json().get('reset_token')
+
+
+def update_password(email: str, reset_token: str, new_password: str) -> None:
+    url = "{}/reset_password".format(BASE_URL)
+    body = {
+        'email': email,
+        'reset_token': reset_token,
+        'new_password': new_password,
+    }
+    res = requests.put(url, data=body)
+    assert res.status_code == 200
+    assert res.json() == {"email": email, "message": "Password updated"}
+
+
+if __name__ == "__main__":
+    create_user(EMAIL, PASSWD)
+    login_wrong_password(EMAIL, NEW_PASSWD)
+    get_profile_unlogged()
+    session_id = login(EMAIL, PASSWD)
+    get_profile_logged(session_id)
+    logout(session_id)
+    reset_token = request_password_reset_token(EMAIL)
+    update_password(EMAIL, reset_token, NEW_PASSWD)
+    login(EMAIL, NEW_PASSWD)
